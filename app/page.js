@@ -1,5 +1,5 @@
 import Image from "next/image";
-import getStripe from '@/flashcards/utils/getStripe'
+// import getStripe from '@/flashcards/utils/getStripe'
 import {SignedIn, SignedOut, UserButton} from '@clerk/nextjs'
 import {Container, Toolbar, Typography, Button, AppBar, Box, Grid} from '@mui/material'
 import Head from 'next/head'

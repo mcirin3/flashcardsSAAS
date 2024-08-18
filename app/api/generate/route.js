@@ -14,6 +14,7 @@ based on the given topic or content. Follow these guidelines:
 8. Tailor the difficulty level of the flashcards to the user's specified preferences. 
 9. If given a body of text, extract the most important and relevant information for the flashcards. 
 10. Aim to create a balanced set of flashcards that covers the topic comprehensively. 
+11. Generate only ten flashcards.
 
 Remember, the goal is to facilitate effective learning and retention of information through these flashcards.
 
@@ -28,10 +29,10 @@ Return in the following JSON format
 
  `
 export async function POST(req){
-    const openai = OpenAI()
+    const openai = new OpenAI()
     const data = await req.text()
 
-    const completion = await openai.chat.completion.create({
+    const completion = await openai.chat.completions.create({
         messages:[
             {role: 'system', content: systemPrompt},
             {role: 'user', content: data},
