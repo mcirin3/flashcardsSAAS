@@ -1,10 +1,11 @@
 
 'use client'
 
-import { useRouter } from "next/router"
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 import {useUser} from '@clerk/nextjs'
-
+import {doc, collection, setDoc, getDoc, writeBatch} from 'firebase/firestore'
+import {db} from '@/firebase'
 import {
     Container,
     TextField,
@@ -22,6 +23,7 @@ import {
     Grid,
 } from '@mui/material'
 
+
 export default function Generate() {
 
     const {isLoaded, isSignedIn, user} = useUser()
@@ -30,11 +32,13 @@ export default function Generate() {
     const [text, setText] = useState('')
     const [name, setName] = useState('')
     const [open, setOpenI] = useState(false)
-    const router = useRouter
+ 
     const [dialogOpen, setDialogOpen] = useState(false)
 
     const handleOpenDialog = () => setDialogOpen(true)
     const handleCloseDialog = () => setDialogOpen(false)
+    const router = useRouter()
+
 
     const handleCardCClick = (id) => {
         setFlipped((prev) => ({
@@ -45,38 +49,41 @@ export default function Generate() {
     }
 
     const saveFlashcards = async () => {
-        if (!name) {
-          alert('Please enter a name for your flashcard set.')
-          return
-        }
-      
-        try {
-          const userDocRef = doc(collection(db, 'users'), user.id)
-          const userDocSnap = await getDoc(userDocRef)
-      
-          const batch = writeBatch(db)
-      
-          if (userDocSnap.exists()) {
-            const userData = userDocSnap.data()
-            const updatedSets = [...(userData.flashcardSets || []), { name: setName }]
-            batch.update(userDocRef, { flashcardSets: updatedSets })
-          } else {
-            batch.set(userDocRef, { flashcardSets: [{ name: setName }] })
-          }
-      
-          const setDocRef = doc(collection(userDocRef, 'flashcardSets'), setName)
-          batch.set(setDocRef, { flashcards })
-      
-          await batch.commit()
-      
-          alert('Flashcards saved successfully!')
-          handleCloseDialog()
-          setSetName('')
-        } catch (error) {
-          console.error('Error saving flashcards:', error)
-          alert('An error occurred while saving flashcards. Please try again.')
-        }
+      if(!name){
+        alert('Please enter a name')
+        return
       }
+
+      const batch = writeBatch(db)
+      const userDocRef = doc(collection(db, 'users'), user.id)
+      const docSnap = await getDoc(userDocRef)
+
+      if(docSnap.exists()){
+        const collections = docSnap.data().flashcards || 
+        [] 
+        if (collections.find((f) => f.name === name)){
+          alert('Flashcards with the same name already exists.')
+          return
+        } else {
+          collections.push({name})
+          batch.set(userDocRef, {flashcards: collections}, {merge: true})
+        }
+      } 
+      else {
+        batch.set(userDocRef, {flashcards: [{name}]})
+      }
+
+      const colRef = collection(userDocRef, name)
+      flashcards.forEach((flashcard) => {
+        const cardDocREF = doc(colRef)
+        batch.set(cardDocREF, flashcard)
+
+      })
+
+      await batch.commit()
+      handleCloseDialog()
+      router.push('/flashcards')
+    }
     const handleSubmit = async () => {
         if (!text.trim()) {
           alert('Please enter some text to generate flashcards.')
@@ -104,6 +111,7 @@ export default function Generate() {
       return (
         <Container maxWidth="md">
           <Box sx={{ my: 4 }}>
+
             <Typography variant="h4" component="h1" gutterBottom>
               Generate Flashcards
             </Typography>
@@ -220,7 +228,7 @@ export default function Generate() {
       label="Set Name"
       type="text"
       fullWidth
-      value={setName}
+      value={name}
       onChange={(e) => setName(e.target.value)}
     />
   </DialogContent>
